@@ -21,12 +21,6 @@ It copies new or changed files from a source folder to one or more destinations 
 - macOS 14 or later
 - Apple Silicon or Intel Mac
 
-## Build and Run
-
-1. Open `BackupTrust.xcodeproj` in Xcode 16 or later
-2. Set your development team in Signing & Capabilities
-3. Build and run the `BackupTrust` target
-
 BackupTrust launches as a menu bar app with no Dock icon.
 
 ## How It Works
