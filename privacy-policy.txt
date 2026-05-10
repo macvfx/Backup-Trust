@@ -1,0 +1,5 @@
+### Privacy & Security
+
+• All data stays on your Mac and where you back it up
+• No data sent to third parties
+• Sandboxed for security
