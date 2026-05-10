@@ -1,3 +1,3 @@
-**Schedule backups from your menu bar.**
+*Schedule backups from your menu bar.*
 
-See README, UserGuide and Workflows guide in repo.
+See the **README**, User Guide and Workflows guide in repo for more details.
