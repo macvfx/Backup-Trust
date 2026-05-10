@@ -75,6 +75,6 @@ What happens:
 
 ## More Docs
 
-- Overview: [BackupTrust-README.md](../BackupTrust-README.md)
-- User guide: [BackupTrust-UserGuide.md](../BackupTrust-UserGuide.md)
+- Overview: [BackupTrust-README.md](BackupTrust-README.md)
+- User guide: [BackupTrust-UserGuide.md](BackupTrust-UserGuide.md)
 - Full workflows: [WORKFLOWS.md](WORKFLOWS.md)
