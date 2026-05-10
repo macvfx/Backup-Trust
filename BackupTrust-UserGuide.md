@@ -80,5 +80,5 @@ BackupTrust writes overflow manifests to `_OverflowManifests/` so you can see wh
 ## More Docs
 
 - Overview: [BackupTrust-README.md](BackupTrust-README.md)
-- Workflows: [docs/BackupTrust-Workflows.md](docs/BackupTrust-Workflows.md)
+- Workflows: [BackupTrust-Workflows.md](BackupTrust-Workflows.md)
 - Full guide: [USERGUIDE.md](USERGUIDE.md)
