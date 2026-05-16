@@ -4,6 +4,8 @@
 
 BackupTrust lives in the menu bar. Click the icon to see plan status, run backups, open settings, and review recent results.
 
+If you switch between BackupTrust installations on different Macs use **Import Plans…** and **Export Plans…** in **Settings → Plans** to move plan definitions across.
+
 To create your first plan:
 
 1. Open **Settings**
@@ -16,7 +18,7 @@ To create your first plan:
 
 ## Folder Access
 
-BackupTrust is sandboxed, so it stores access to your source and destination folders as security-scoped bookmarks.
+`BackupTrust` is sandboxed, so it stores access to your source and destination folders as security-scoped bookmarks.
 
 If a plan later shows `Re-select…` or a saved-access warning:
 
@@ -63,12 +65,36 @@ Each plan can include:
 - Duplicate destination paths are blocked
 - Offline destinations are handled gracefully
 - Large files can show byte-level progress during copy
+- The full `macOS System` exclusion preset is enabled by default for every plan
+- `.DS_Store` stays excluded even when hidden files are included, so useful hidden content like `.git` can still be backed up without Finder metadata noise
+
+## Excluded Directories
+
+BackupTrust can skip whole folder trees by name before scanning inside them.
+
+Preset categories include:
+
+- `Xcode & Swift`
+- `Final Cut Pro`
+- `Adobe Creative Suite`
+- `Node / Web`
+- `macOS System`
+
+The full `macOS System` category is enabled by default for new plans, and older plans automatically pick up those rules when they load or import. That preset includes Synology `@eaDir` metadata and other macOS/system-generated directories that usually do not belong in backups.
+
+Even if you enable hidden files, BackupTrust still excludes `.DS_Store` by default so Finder metadata does not get copied accidentally. If you need a special-case system folder, expand the preset and uncheck just that one rule.
 
 ## Overflow Destination
 
-An overflow destination is optional. When configured, files that exceed the size limit or exceed filename limits on a destination can be routed to a separate folder instead of being skipped.
+An overflow destination is optional. When configured, files that exceed the size filter or have filename components too long for encrypted NAS volumes (>143 bytes) are copied to the overflow folder instead of being skipped. The original folder structure is mirrored on the overflow destination.
 
-BackupTrust writes overflow manifests to `_OverflowManifests/` so you can see what was diverted and why.
+Each run writes a pair of manifests to `_OverflowManifests/` on the overflow destination: a JSON manifest with per-file checksums and provenance, and a human-readable TXT summary.
+
+**Space threshold** — a configurable limit (default 90%) prevents the overflow destination from filling up. When disk usage reaches the threshold, overflow copying pauses and remaining files are skipped. Adjust with the **Space threshold** stepper in the overflow settings, or set to 0% to disable.
+
+**Staleness detection & reclaim** — after overflow copying, the engine scans for overflow files that also exist on primary destinations. These are reported in the menu bar as reclaimable space. This typically happens when you raise the size filter so files that were previously overflow-routed now go to primary destinations directly.
+
+When reclaimable files are detected, a **Reclaim Space…** button appears in the Overflow Destination section of the plan editor. Clicking it opens a sheet listing every reclaimable file with its size and which primary destination(s) it was found on. Select files individually or all at once, then click **Verify & Delete** — the app re-confirms each file exists on both overflow and primary before deleting only the verified-safe overflow copies.
 
 ## Good Defaults
 
@@ -76,9 +102,3 @@ BackupTrust writes overflow manifests to `_OverflowManifests/` so you can see wh
 - Use `Copy if newer` unless you truly want destination deletions
 - Turn on verification for critical backups or new storage
 - Start with narrow exclusions and add more only when you are sure the folders are disposable
-
-## More Docs
-
-- Overview: [BackupTrust-README.md](BackupTrust-README.md)
-- Workflows: [BackupTrust-Workflows.md](BackupTrust-Workflows.md)
-- Full guide: [USERGUIDE.md](USERGUIDE.md)
