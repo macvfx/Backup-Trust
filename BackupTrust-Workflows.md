@@ -10,7 +10,7 @@ Best when you want one network backup and one fast local restore target.
 - Destinations: NAS backup folder and external SSD backup folder
 - Schedule: hourly or daily
 - Conflict mode: `Overwrite if newer`
-- Sync mode: `Copy if newer`
+- Sync mode: `Copy only`
 
 Why it works:
 
@@ -26,7 +26,7 @@ Best when your live project is mounted through LucidLink and you want a traditio
 - Destination: NAS backup folder
 - Schedule: hourly
 - Conflict mode: `Overwrite if newer`
-- Sync mode: `Copy if newer`
+- Sync mode: `Copy only`
 
 Recommended options:
 
@@ -43,7 +43,7 @@ Best when you want to protect development work without copying disposable build 
 - Schedule: hourly
 - Exclusions: `Xcode & Swift`, optionally `Node / Web`
 - Conflict mode: `Overwrite if newer`
-- Sync mode: `Copy if newer`
+- Sync mode: `Copy only`
 
 Why it works:
 
