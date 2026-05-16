@@ -4,7 +4,7 @@
 
 BackupTrust lives in the menu bar. Click the icon to see plan status, run backups, open settings, and review recent results.
 
-If you switch between BackupTrust installations on different Macs use **Import Plans…** and **Export Plans…** in **Settings → Plans** to move plan definitions across.
+If you switch between Macs with BackupTrust, use **Import Plans…** and **Export Plans…** in **Settings → Plans** to move plan definitions across.
 
 To create your first plan:
 
@@ -18,7 +18,9 @@ To create your first plan:
 
 ## Folder Access
 
-`BackupTrust` is sandboxed, so it stores access to your source and destination folders as security-scoped bookmarks.
+`BackupTrust Pro` accesses folders directly and does not rely on bookmark repair for routine use.
+
+The standard `BackupTrust` build is sandboxed, so it stores access to your source and destination folders as security-scoped bookmarks.
 
 If a plan later shows `Re-select…` or a saved-access warning:
 
@@ -99,6 +101,6 @@ When reclaimable files are detected, a **Reclaim Space…** button appears in th
 ## Good Defaults
 
 - Use `Overwrite if newer` for most plans
-- Use `Copy if newer` unless you truly want destination deletions
+- Use `Copy only` unless you truly want destination deletions
 - Turn on verification for critical backups or new storage
 - Start with narrow exclusions and add more only when you are sure the folders are disposable
