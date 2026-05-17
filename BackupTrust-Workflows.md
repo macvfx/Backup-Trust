@@ -1,80 +1,284 @@
-# BackupTrust — Workflows
+# BackupTrust — Example Workflows
 
-This document shows a few compact setup patterns for the sandboxed BackupTrust app.
+This document shows real-world BackupTrust setups for common macOS backup patterns: local source to local + NAS, LucidLink source to mixed local/network destinations, and local source to both Lucid and SMB storage.
 
-## Workflow 1: Project Folder to NAS and External SSD
+These examples are written around the app's current behavior:
+- One plan can copy to multiple destinations.
+- Destinations inside a single plan are copied in parallel.
+- Multiple enabled plans can also run at the same time today.
+- Excluded directories and file filters are applied before copy begins.
 
-Best when you want one network backup and one fast local restore target.
+If two plans might hit the same destination at once, keep their schedules separated for now. The next planned safety control is an optional Settings rule that prevents multiple plans from writing to the same mounted root volume at the same time.
 
-- Source: active project folder
-- Destinations: NAS backup folder and external SSD backup folder
-- Schedule: hourly or daily
-- Conflict mode: `Overwrite if newer`
-- Sync mode: `Copy only`
+LucidLink note (1.4 build 7+):
+- BackupTrust detects LucidLink volumes automatically — both **Classic** (`lucidfs` kernel mount) and **New** (loopback SMB on `127.0.0.1`). The detected type is logged at the start of each run.
+- If the LucidLink source disconnects mid-backup, the primary copy circuit breaker preserves all files already copied, and the overflow phase is skipped entirely.
 
-Why it works:
+Post-production tip:
+- For any workflow backing up Final Cut Pro projects or libraries (whether the source is LucidLink, local, or NAS), enable the **Final Cut Pro** exclusion preset. This skips `Render Files`, `Transcoded Media`, `.fcpcache` bundles, and `Motion Renders` — all regeneratable by FCP — and can cut backup size and duration significantly.
 
-- The SSD gives you fast restores
-- The NAS gives you a second copy on separate storage
-- One plan can write to both destinations in parallel
+---
 
-## Workflow 2: LucidLink Folder to NAS
+## Quick Pattern Guide
 
-Best when your live project is mounted through LucidLink and you want a traditional backup target.
+| Workflow | Best when | Source | Destinations |
+|---|---|---|---|
+| Active Lucid project backup | Your working project lives on LucidLink and needs local/network redundancy | LucidLink-mounted project folder | Local SSD or RAID + SMB NAS |
+| Mac folder to Lucid and NAS | You want both cloud-style collaboration storage and a traditional network backup target | Local APFS folder | LucidLink folder + SMB NAS |
+| Swift apps code backup | You want fast local recovery plus NAS protection | Local APFS folder | Local SSD + SMB NAS |
 
-- Source: LucidLink-mounted project folder
-- Destination: NAS backup folder
-- Schedule: hourly
-- Conflict mode: `Overwrite if newer`
-- Sync mode: `Copy only`
+---
 
-Recommended options:
+## Workflow 1 — Active Lucid Video Post Project to SMB NAS and Local SSD or Thunderbolt RAID
 
-- Enable only the exclusions you are sure are disposable
-- Turn on verification for important runs
-- Watch for `Re-select…` warnings if saved folder access expires
+### Goal
 
-## Workflow 3: Code Folder to SSD and NAS
+Back up an actively changing video post project folder mounted from LucidLink to:
+- an SMB NAS for network storage
+- a local SSD or Thunderbolt RAID for fast local access and recovery
 
-Best when you want to protect development work without copying disposable build output.
+This is a strong working setup when Lucid is the live source of truth for editorial or finishing work, but you want independent copies outside that live mount.
 
-- Source: local code root
-- Destinations: SSD backup folder and NAS backup folder
-- Schedule: hourly
-- Exclusions: `Xcode & Swift`, optionally `Node / Web`
-- Conflict mode: `Overwrite if newer`
-- Sync mode: `Copy only`
+### Recommended Plan
 
-Why it works:
+**Plan name**
+- `Lucid FCP Project → NAS + Local`
 
-- Excluding `DerivedData`, `.build`, and `node_modules` reduces scan time and copy churn
-- The SSD gives quick rollback and restore
-- The NAS gives a second backup target
+**Source**
+- The active project folder inside the LucidLink volume
 
-## Workflow 4: Large Media with Overflow Destination
+**Destinations**
+- SMB NAS project backup folder
+- Local SSD or Thunderbolt RAID folder
 
-Best when some files are too large for your main policy or hit destination filename limits.
+**Schedule**
+- Hourly for active work
+- Add a busy window only if you want backups deferred during peak work hours
 
-- Source: media or archive folder
-- Primary destination: normal backup target
-- Overflow destination: separate drive or folder
-- Schedule: daily or weekly
+**Excluded directories**
+- Keep exclusions project-specific and deliberate
+- If this is a Final Cut Pro workflow, turn on the **Final Cut Pro** preset to skip regeneratable media and cache content:
+  - `Render Files` — FCP render cache including thumbnail and waveform-related generated files
+  - `Transcoded Media` — optimized and proxy media generated by FCP
+  - `.fcpcache` bundles — FCP analysis and cache data (matched by suffix, so `MyProject.fcpcache` is caught)
+  - `Motion Renders` — Motion app render output
+- These directories can add tens of gigabytes of churn to each backup run and are fully regeneratable by FCP on demand
+- Otherwise keep exclusions narrow so you do not skip real working media, libraries, or deliverables
 
-What happens:
+**Conflict mode**
+- `Overwrite if newer`
 
-- Normal files go to the primary destination
-- Oversized or long-filename files are routed to the overflow destination
-- BackupTrust writes JSON and TXT overflow manifests so nothing is lost silently
+**Sync mode**
+- Usually `Copy if newer`
+- Use `Mirror` only if the Lucid project folder is meant to be mirrored tightly
 
-## Setup Tips
+### Diagram
 
-- Use one plan when the same source should go to multiple destinations on the same schedule
-- Use separate plans when schedules or rules should differ
-- Stagger heavy plans if they write to the same NAS at the same time
-- If a source or destination shows `Re-select…`, refresh folder access before the next run
+```mermaid
+flowchart LR
+    A["LucidLink Mounted Project Folder"] --> B["BackupTrust Plan"]
+    B --> C["SMB NAS Project Backup"]
+    B --> D["Local SSD or Thunderbolt RAID Backup"]
+```
 
-## More Docs
+### Why this works well
 
-- Overview: [BackupTrust-README.md](BackupTrust-README.md)
-- User guide: [BackupTrust-UserGuide.md](BackupTrust-UserGuide.md)
-- Full workflows: [WORKFLOWS.md](WORKFLOWS.md)
+- You keep the convenience of Lucid as the live working location.
+- You get one fast local backup target and one network backup target.
+- Local restore can be much faster than pulling everything back through the live cloud-backed mount.
+- Final Cut Pro exclusions remove render caches, transcoded media, and `.fcpcache` bundles — all regeneratable by FCP — without skipping actual project assets, camera originals, or deliverables.
+
+### Practical Notes
+
+- Make sure the local SSD or RAID has enough space for growth; BackupTrust preflight will help.
+- If the project is a Final Cut Pro job, enable the **Final Cut Pro** exclusion preset. This skips `Render Files`, `Transcoded Media`, `.fcpcache` bundles, and `Motion Renders` — all regeneratable by FCP. Only add more custom rules if you are sure the additional directories are disposable.
+- If the same NAS is also used by other plans, stagger schedules for now to reduce concurrent writes.
+- If you are on Lucid Classic with macOS `15.7.5`, prefer `BackupTrust Pro` so the run does not depend on sandbox bookmark repair after relaunch.
+
+---
+
+## Workflow 2 — Mac Folder to Both Lucid and SMB NAS
+
+### Goal
+
+Back up a local Mac folder to:
+- a LucidLink destination folder for shared/cloud-style access
+- an SMB NAS folder for traditional on-prem backup
+
+This is useful when your source starts local, but you want one copy to land in a collaborative Lucid workspace and another to land on standard NAS storage.
+
+### Recommended Plan
+
+**Plan name**
+- `Mac Folder → Lucid + NAS`
+
+**Source**
+- Any local Mac folder, such as:
+- a current show folder
+- a shared documents folder
+- a client delivery prep folder
+
+**Destinations**
+- LucidLink destination folder
+- SMB NAS destination folder
+
+**Schedule**
+- Daily or hourly depending on how frequently the source changes
+
+**Excluded directories**
+- If the source contains Final Cut Pro libraries or projects, enable the **Final Cut Pro** preset to skip `Render Files`, `Transcoded Media`, `.fcpcache` bundles, and `Motion Renders` — all regeneratable by FCP on demand
+- Otherwise use only if the source includes other known cache/generated folders
+
+**Conflict mode**
+- `Overwrite if newer`
+
+**Sync mode**
+- `Copy if newer` is the safer default
+
+### Diagram
+
+```mermaid
+flowchart LR
+    A["Mac Local Source Folder"] --> B["BackupTrust Plan"]
+    B --> C["LucidLink Destination Folder"]
+    B --> D["SMB NAS Destination Folder"]
+```
+
+### Why this works well
+
+- Lucid gives you a mounted collaborative destination.
+- NAS gives you a second, more conventional backup path.
+- You can keep local authoring while still publishing outward automatically.
+
+### Practical Notes
+
+- This is not the same as sync or collaboration conflict resolution; BackupTrust is still one-way from source to destinations.
+- If Lucid and NAS are both slower than local disk, consider less frequent schedules or narrower source folders.
+- If the source contains large media, use overflow routing (1.4+) so oversized files go to a designated local drive instead of being skipped. Set the overflow space threshold to prevent the overflow drive from filling up.
+- If the source is a Final Cut Pro project or library folder, enable the **Final Cut Pro** exclusion preset — render caches and transcoded media are regeneratable and add significant churn to every backup run.
+
+---
+
+## Workflow 3 — Swift Apps Code Folder to Local SSD and SMB NAS
+
+### Goal
+
+Back up your local code archive from your Mac to:
+- a fast local SSD for immediate recovery
+- an SMB NAS for secondary protection
+
+This is a strong fit for large developer folders that contain lots of disposable Xcode-generated data you do not want to waste time copying.
+
+### Recommended Plan
+
+**Plan name**
+- `Swift Apps Code → SSD + NAS`
+
+**Source**
+- Your local code root, for example:
+- `/Users/xavier/Code`
+
+**Destinations**
+- Local SSD backup folder
+- SMB NAS backup folder
+
+**Schedule**
+- Hourly if you work from this folder all day
+- Or daily / weekly if it is mostly archival
+
+**Excluded directories**
+- Turn on `Xcode & Swift`
+- Consider also turning on `Node / Web` if some projects include `node_modules`
+
+**Conflict mode**
+- `Overwrite if newer`
+
+**Sync mode**
+- `Copy if newer` for safer archival behavior
+- `Mirror` only if you want destination cleanup to track source deletions closely
+
+### Diagram
+
+```mermaid
+flowchart LR
+    A["Mac: Swift Apps Code Folder"] --> B["BackupTrust Plan"]
+    B --> C["Exclude Xcode Cruft<br/>DerivedData .build .swiftpm xcuserdata"]
+    C --> D["Local SSD Backup Folder"]
+    C --> E["SMB NAS Backup Folder"]
+```
+
+### Why this works well
+
+- Local SSD gives you the fastest restore path.
+- NAS gives you a second destination on a different storage system.
+- Excluding Xcode cruft massively reduces scan count and copy churn.
+
+### Practical Notes
+
+- If the source contains many active repos, hourly plus Xcode exclusions is a very good default.
+- If the NAS is slower or sometimes offline, BackupTrust will still use the reachable destination.
+- If you want the SSD to stay smaller, use the file-size limit with overflow routing (1.4+) to send oversized files to a separate destination.
+
+---
+
+## Suggested Settings by Scenario
+
+| Scenario | Schedule | Exclusions | Sync Mode | Notes |
+|---|---|---|---|---|
+| Active Lucid project | Hourly | FCP preset if Final Cut Pro; otherwise project-relevant cache rules | Copy if newer | Avoid over-excluding working assets |
+| Local folder to Lucid + NAS | Daily or hourly | FCP preset if source contains FCP libraries; otherwise minimal | Copy if newer | Good publishing-style flow |
+| Swift code archive | Hourly | Xcode & Swift, maybe Node / Web | Copy if newer | Best balance of speed and safety |
+
+---
+
+## One Plan or Multiple Plans?
+
+Use **one plan** when:
+- the same source should go to multiple destinations
+- the schedule should be identical
+- the same exclusions and filter rules should apply everywhere
+
+Use **multiple plans** when:
+- destinations should run on different schedules
+- one backup should mirror and another should archive
+- one source needs different filter/exclusion behavior than another
+
+### Current caution
+
+BackupTrust currently allows:
+- multiple destinations within one plan to run in parallel
+- multiple plans to run at the same time
+
+For now, avoid scheduling multiple plans to hammer the same NAS or destination volume at the same moment unless you are intentionally testing that behavior.
+
+---
+
+## Future Workflow Ideas
+
+These are not fully shipped yet, but they fit naturally with the workflows above:
+
+- Destination locking so only one plan writes to the same target at a time
+- Sequential plan execution for quieter scheduled runs
+- Per-plan choice of parallel or sequential destinations
+- ~~Large-file overflow routing~~ ✅ Shipped in 1.4 — set an overflow destination per plan to route oversized or long-filename files to a secondary drive
+- Relay-chain style copies for advanced staged backups
+
+### Overflow Routing Pattern (Shipped in 1.4)
+
+Overflow routing is now available per plan:
+
+- Source lives on LucidLink, local disk, or another mounted volume
+- Main destinations hold the normal working backup set
+- A separate local SSD / RAID / cache drive receives files above the configured size threshold, or files with filename components too long for encrypted NAS volumes
+- Result: smaller files move through slower or remote destinations now, while oversized or problematic files are captured at the overflow destination instead of being skipped entirely
+- JSON + TXT provenance manifests on the overflow destination record what was routed and why
+
+Example:
+- `project files under 25 GB → SMB NAS`
+- `project files over 25 GB → local cache SSD`
+
+This is especially useful for:
+- slow internet or metered links
+- mobile rigs with partial connectivity
+- encrypted NAS volumes with filename length restrictions (Synology DSM 7 eCryptfs)
+- staged backup strategies where "protect something now, finish the rest later" is better than skipping large files forever
