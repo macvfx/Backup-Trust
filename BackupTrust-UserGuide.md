@@ -1,10 +1,10 @@
 # BackupTrust — User Guide
 
+Current release line: `1.5 (1)`.
+
 ## Getting Started
 
 BackupTrust lives in the menu bar. Click the icon to see plan status, run backups, open settings, and review recent results.
-
-If you switch between Macs with BackupTrust, use **Import Plans…** and **Export Plans…** in **Settings → Plans** to move plan definitions across.
 
 To create your first plan:
 
@@ -18,9 +18,7 @@ To create your first plan:
 
 ## Folder Access
 
-`BackupTrust Pro` accesses folders directly and does not rely on bookmark repair for routine use.
-
-The standard `BackupTrust` build is sandboxed, so it stores access to your source and destination folders as security-scoped bookmarks.
+BackupTrust is sandboxed, so it stores access to your source and destination folders as security-scoped bookmarks.
 
 If a plan later shows `Re-select…` or a saved-access warning:
 
@@ -38,6 +36,11 @@ From the menu bar you can:
 - Cancel an in-progress backup
 - Open logs
 - Check the next scheduled run
+
+From **Settings → Schedule**, you can also:
+
+- Review upcoming runs for every enabled plan
+- Click **Run Now** beside **Edit Plan** without leaving the schedule view
 
 Status colors:
 
@@ -59,6 +62,7 @@ Each plan can include:
 - Sync mode: copy if newer or mirror
 - Optional post-copy verification
 - Optional overflow destination
+- Built-in diagnostics for source, destination, and overflow health
 
 ## Useful Behaviors
 
@@ -66,9 +70,21 @@ Each plan can include:
 - Destination files missing from the manifest check are re-copied automatically
 - Duplicate destination paths are blocked
 - Offline destinations are handled gracefully
+- LucidLink-backed plans can use client-aware diagnostics for either `lucid` or `lucid2`
 - Large files can show byte-level progress during copy
 - The full `macOS System` exclusion preset is enabled by default for every plan
 - `.DS_Store` stays excluded even when hidden files are included, so useful hidden content like `.git` can still be backed up without Finder metadata noise
+
+## Diagnostics And Lucid Troubleshooting
+
+Use **Run Diagnostics** in the plan editor when a source, destination, or overflow path behaves unexpectedly.
+
+For Lucid-backed plans, BackupTrust can:
+
+- detect whether the machine has `lucid` or `lucid2`
+- run a Lucid CLI sanity check from diagnostics
+- optionally append safe Lucid CLI state to the normal session log
+- open Terminal for an intentional interactive Lucid support upload when support asks for `support --all` at failure time
 
 ## Excluded Directories
 
