@@ -181,7 +181,7 @@ This is a strong fit for large developer folders that contain lots of disposable
 
 **Source**
 - Your local code root, for example:
-- `/Users/xavier/Code`
+- `~/Code`
 
 **Destinations**
 - Local SSD backup folder
@@ -332,6 +332,18 @@ BackupTrust currently allows:
 
 For now, avoid scheduling multiple plans to hammer the same NAS or destination volume at the same moment unless you are intentionally testing that behavior.
 
+---
+
+## Future Workflow Ideas
+
+These are not fully shipped yet, but they fit naturally with the workflows above:
+
+- Destination locking so only one plan writes to the same target at a time
+- Sequential plan execution for quieter scheduled runs
+- Per-plan choice of parallel or sequential destinations
+- ~~Large-file overflow routing~~ ✅ Shipped in 1.4 — set an overflow destination per plan to route oversized or long-filename files to a secondary drive
+- Relay-chain style copies for advanced staged backups
+
 ### Overflow Routing Pattern (Shipped in 1.4)
 
 Overflow routing is now available per plan:
@@ -351,14 +363,3 @@ This is especially useful for:
 - mobile rigs with partial connectivity
 - encrypted NAS volumes with filename length restrictions (Synology DSM 7 eCryptfs)
 - staged backup strategies where "protect something now, finish the rest later" is better than skipping large files forever
-
-- 
-## Future Workflow Ideas
-
-These are not fully shipped yet, but they fit naturally with the workflows above:
-
-- Destination locking so only one plan writes to the same target at a time
-- Sequential plan execution for quieter scheduled runs
-- Per-plan choice of parallel or sequential destinations
-- ~~Large-file overflow routing~~ ✅ Shipped in 1.4 — set an overflow destination per plan to route oversized or long-filename files to a secondary drive
-- Relay-chain style copies for advanced staged backups
