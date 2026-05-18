@@ -10,6 +10,10 @@ These examples are written around the app's current behavior:
 
 If two plans might hit the same destination at once, keep their schedules separated for now. The next planned safety control is an optional Settings rule that prevents multiple plans from writing to the same mounted root volume at the same time.
 
+Folder access note:
+- BackupTrust is sandboxed. When you choose a source, destination, or overflow folder, macOS grants saved access to that folder.
+- If saved access later expires after an app update, system update, path change, or development rebuild, open the plan in Settings and use **Re-select…** on the affected path.
+
 LucidLink note (1.4 build 7+):
 - BackupTrust detects LucidLink volumes automatically — both **Classic** (`lucidfs` kernel mount) and **New** (loopback SMB on `127.0.0.1`). The detected type is logged at the start of each run.
 - If the LucidLink source disconnects mid-backup, the primary copy circuit breaker preserves all files already copied, and the overflow phase is skipped entirely.
@@ -26,6 +30,7 @@ Post-production tip:
 | Active Lucid project backup | Your working project lives on LucidLink and needs local/network redundancy | LucidLink-mounted project folder | Local SSD or RAID + SMB NAS |
 | Mac folder to Lucid and NAS | You want both cloud-style collaboration storage and a traditional network backup target | Local APFS folder | LucidLink folder + SMB NAS |
 | Swift apps code backup | You want fast local recovery plus NAS protection | Local APFS folder | Local SSD + SMB NAS |
+| Primary destination plus overflow drive | Your main backup target should stay smaller or cannot accept very large / long-filename files | Any mounted source | Primary destination + separate overflow drive |
 
 ---
 
@@ -69,7 +74,7 @@ This is a strong working setup when Lucid is the live source of truth for editor
 - `Overwrite if newer`
 
 **Sync mode**
-- Usually `Copy if newer`
+- Usually `Copy only`
 - Use `Mirror` only if the Lucid project folder is meant to be mirrored tightly
 
 ### Diagram
@@ -93,7 +98,7 @@ flowchart LR
 - Make sure the local SSD or RAID has enough space for growth; BackupTrust preflight will help.
 - If the project is a Final Cut Pro job, enable the **Final Cut Pro** exclusion preset. This skips `Render Files`, `Transcoded Media`, `.fcpcache` bundles, and `Motion Renders` — all regeneratable by FCP. Only add more custom rules if you are sure the additional directories are disposable.
 - If the same NAS is also used by other plans, stagger schedules for now to reduce concurrent writes.
-- If you are on Lucid Classic with macOS `15.7.5`, prefer `BackupTrust Pro` so the run does not depend on sandbox bookmark repair after relaunch.
+- If a LucidLink or NAS path reports saved-access trouble after relaunch, open Settings and re-select that same path before running the plan again.
 
 ---
 
@@ -133,7 +138,7 @@ This is useful when your source starts local, but you want one copy to land in a
 - `Overwrite if newer`
 
 **Sync mode**
-- `Copy if newer` is the safer default
+- `Copy only` is the safer default
 
 ### Diagram
 
@@ -194,7 +199,7 @@ This is a strong fit for large developer folders that contain lots of disposable
 - `Overwrite if newer`
 
 **Sync mode**
-- `Copy if newer` for safer archival behavior
+- `Copy only` for safer archival behavior
 - `Mirror` only if you want destination cleanup to track source deletions closely
 
 ### Diagram
@@ -221,13 +226,89 @@ flowchart LR
 
 ---
 
+## Workflow 4 — Primary Destination With Overflow Drive For Large Or Long-Named Files
+
+### Goal
+
+Back up a source folder to a normal primary destination, while automatically routing edge-case files to a separate overflow drive when they:
+- exceed the configured file-size limit
+- or contain filename components longer than 143 bytes, which can fail on encrypted NAS volumes
+
+This is useful when your main destination is a NAS, slower shared storage, or an encrypted volume that should still receive the normal working set without being blocked by a smaller number of problematic files.
+
+### Recommended Plan
+
+**Plan name**
+- `Project Folder → NAS + Overflow SSD`
+
+**Source**
+- Any mounted project folder, for example:
+- a LucidLink project source
+- a local media folder
+- a large archive that contains a mix of normal and oversized files
+
+**Primary destination**
+- SMB NAS backup folder
+
+**Overflow destination**
+- Local SSD, RAID, or other fast secondary drive dedicated to overflow
+
+**File filter**
+- Set **Skip files larger than** to the cutoff you want for the primary destination
+- Example: `25 GB`
+
+**Conflict mode**
+- `Overwrite if newer`
+
+**Sync mode**
+- Usually `Copy only`
+
+### Diagram
+
+```mermaid
+flowchart LR
+    A["Source Folder"] --> B["BackupTrust Plan"]
+    B --> C{"Does file fit primary rules?"}
+    C -->|Yes: within size limit and filename OK| D["Primary Destination<br/>NAS or standard backup folder"]
+    C -->|No: oversized or filename component too long| E["Overflow Drive<br/>SSD / RAID / cache volume"]
+    E --> F["_OverflowManifests<br/>JSON + TXT provenance"]
+```
+
+### Example Outcome
+
+| File type | Result |
+|---|---|
+| Normal project files under `25 GB` | Copied to the primary destination |
+| File larger than `25 GB` | Routed to the overflow drive |
+| File with a filename component over `143` bytes | Routed to the overflow drive |
+| Same file after you later relax the size limit | Can go to the primary destination on a future run, then appear as reclaimable on overflow |
+
+### Why this works well
+
+- The primary destination still gets the normal working backup set.
+- Large files do not clog a slower or space-sensitive destination.
+- Long-filename files are preserved instead of silently failing on encrypted NAS targets.
+- The overflow drive becomes an intentional safety net rather than a mystery side path.
+- JSON + TXT manifests on the overflow drive record exactly what was routed and why.
+
+### Practical Notes
+
+- Keep the overflow destination on a different path than the source and primary destination.
+- A fast local SSD is usually the best overflow target because it reduces retry pain for very large files.
+- Use the **Space threshold** setting so the overflow drive does not fill completely during a long run.
+- If you later raise the file-size limit or change the destination capabilities, BackupTrust can detect overflow files that are now also present on the primary destination and mark them as reclaimable.
+- This pattern is especially strong for LucidLink or media-heavy workflows where "protect the whole set somewhere" matters more than forcing every file through the same target immediately.
+
+---
+
 ## Suggested Settings by Scenario
 
 | Scenario | Schedule | Exclusions | Sync Mode | Notes |
 |---|---|---|---|---|
-| Active Lucid project | Hourly | FCP preset if Final Cut Pro; otherwise project-relevant cache rules | Copy if newer | Avoid over-excluding working assets |
-| Local folder to Lucid + NAS | Daily or hourly | FCP preset if source contains FCP libraries; otherwise minimal | Copy if newer | Good publishing-style flow |
-| Swift code archive | Hourly | Xcode & Swift, maybe Node / Web | Copy if newer | Best balance of speed and safety |
+| Active Lucid project | Hourly | FCP preset if Final Cut Pro; otherwise project-relevant cache rules | Copy only | Avoid over-excluding working assets |
+| Local folder to Lucid + NAS | Daily or hourly | FCP preset if source contains FCP libraries; otherwise minimal | Copy only | Good publishing-style flow |
+| Swift code archive | Hourly | Xcode & Swift, maybe Node / Web | Copy only | Best balance of speed and safety |
+| Primary + overflow | Hourly or daily | Minimal unless source has known cache folders | Copy only | Best when large files or long names should divert to a secondary drive |
 
 ---
 
@@ -251,18 +332,6 @@ BackupTrust currently allows:
 
 For now, avoid scheduling multiple plans to hammer the same NAS or destination volume at the same moment unless you are intentionally testing that behavior.
 
----
-
-## Future Workflow Ideas
-
-These are not fully shipped yet, but they fit naturally with the workflows above:
-
-- Destination locking so only one plan writes to the same target at a time
-- Sequential plan execution for quieter scheduled runs
-- Per-plan choice of parallel or sequential destinations
-- ~~Large-file overflow routing~~ ✅ Shipped in 1.4 — set an overflow destination per plan to route oversized or long-filename files to a secondary drive
-- Relay-chain style copies for advanced staged backups
-
 ### Overflow Routing Pattern (Shipped in 1.4)
 
 Overflow routing is now available per plan:
@@ -282,3 +351,14 @@ This is especially useful for:
 - mobile rigs with partial connectivity
 - encrypted NAS volumes with filename length restrictions (Synology DSM 7 eCryptfs)
 - staged backup strategies where "protect something now, finish the rest later" is better than skipping large files forever
+
+- 
+## Future Workflow Ideas
+
+These are not fully shipped yet, but they fit naturally with the workflows above:
+
+- Destination locking so only one plan writes to the same target at a time
+- Sequential plan execution for quieter scheduled runs
+- Per-plan choice of parallel or sequential destinations
+- ~~Large-file overflow routing~~ ✅ Shipped in 1.4 — set an overflow destination per plan to route oversized or long-filename files to a secondary drive
+- Relay-chain style copies for advanced staged backups
