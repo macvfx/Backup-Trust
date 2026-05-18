@@ -4,7 +4,7 @@ BackupTrust is a macOS menu bar app for scheduled, incremental folder backup.
 
 It copies new or changed files from a source folder to one or more destinations on an hourly, daily, or weekly schedule, then stays out of the way in the menu bar.
 
-Current release line: `1.5 (1)`.
+Current release: `1.5 (4)`.
 
 ## Highlights
 
