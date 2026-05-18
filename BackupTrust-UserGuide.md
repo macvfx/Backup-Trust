@@ -1,6 +1,6 @@
 # BackupTrust — User Guide
 
-Current release line: `1.5 (1)`.
+Current release: `1.5 (4)`.
 
 ## Getting Started
 
