@@ -1,6 +1,8 @@
 # BackupTrust — User Guide
 
-Current release: `1.5 (4)`.
+Current App Store release: `1.9 (1)`.
+
+> **Project direction:** This guide remains the reference for the sandboxed Mac App Store edition. Active development and direct-access automation features are focused on [BackupTrust Pro](https://github.com/macvfx/BackupTrust-Pro).
 
 ## Getting Started
 
@@ -45,6 +47,7 @@ From **Settings → Schedule**, you can also:
 Status colors:
 
 - Blue: backup running
+- Orange (Queued): waiting for another plan to finish writing to the same destination
 - Green: last run succeeded
 - Orange: warning, offline source, or access needs attention
 - Red: run finished with errors
@@ -74,6 +77,8 @@ Each plan can include:
 - Large files can show byte-level progress during copy
 - The full `macOS System` exclusion preset is enabled by default for every plan
 - `.DS_Store` stays excluded even when hidden files are included, so useful hidden content like `.git` can still be backed up without Finder metadata noise
+- If a NAS destination drops during an active backup, BackupTrust waits up to three minutes for it to reconnect
+- Plans that share a destination queue automatically instead of writing there simultaneously
 
 ## Diagnostics And Lucid Troubleshooting
 
@@ -98,9 +103,9 @@ Preset categories include:
 - `Node / Web`
 - `macOS System`
 
-The full `macOS System` category is enabled by default for new plans, and older plans automatically pick up those rules when they load or import. That preset includes Synology `@eaDir` metadata and other macOS/system-generated directories that usually do not belong in backups.
+The full `macOS System` category is enabled by default for new plans, and older plans automatically pick up those rules when they load or import. That preset includes Synology `@eaDir`, Windows `System Volume Information`, and other system-generated directories that usually do not belong in backups.
 
-Even if you enable hidden files, BackupTrust still excludes `.DS_Store` by default so Finder metadata does not get copied accidentally. If you need a special-case system folder, expand the preset and uncheck just that one rule.
+Even if you enable hidden files, BackupTrust still excludes `.DS_Store` and `Thumbs.db` by default so Finder and Windows thumbnail metadata do not get copied accidentally. If you need a special-case system folder, expand the preset and uncheck just that one rule.
 
 ## Overflow Destination
 
@@ -114,9 +119,25 @@ Each run writes a pair of manifests to `_OverflowManifests/` on the overflow des
 
 When reclaimable files are detected, a **Reclaim Space…** button appears in the Overflow Destination section of the plan editor. Clicking it opens a sheet listing every reclaimable file with its size and which primary destination(s) it was found on. Select files individually or all at once, then click **Verify & Delete** — the app re-confirms each file exists on both overflow and primary before deleting only the verified-safe overflow copies.
 
+## Destination Reconnect Wait
+
+If a NAS destination drops during an active backup, BackupTrust waits up to three minutes for the share to return, probing every 30 seconds. Copying resumes if the expected mounted filesystem returns. If it does not return in time, that destination stops with the normal circuit-breaker error. This recovery is cancellation-aware and does not treat a stale empty directory under `/Volumes` as a mounted share.
+
+## Destination Locking
+
+Destination locking prevents two plans from writing to the same destination at once. A conflicting plan queues automatically and shows which plan it is waiting behind. The queued run can be cancelled without cancelling the active backup.
+
+Locking is enabled by default in **Settings → General**. Exact destination locking prevents concurrent writes to the same path; the stricter mounted-volume option also serializes plans targeting different folders on the same NAS or removable volume.
+
 ## Good Defaults
 
 - Use `Overwrite if newer` for most plans
 - Use `Copy only` unless you truly want destination deletions
 - Turn on verification for critical backups or new storage
 - Start with narrow exclusions and add more only when you are sure the folders are disposable
+
+## More Documentation
+
+- [Overview](BackupTrust-README.md)
+- [Example Workflows](BackupTrust-Workflows.md)
+- [BackupTrust Pro](https://github.com/macvfx/BackupTrust-Pro)

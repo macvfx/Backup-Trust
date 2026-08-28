@@ -4,7 +4,9 @@ BackupTrust is a macOS menu bar app for scheduled, incremental folder backup.
 
 It copies new or changed files from a source folder to one or more destinations on an hourly, daily, or weekly schedule, then stays out of the way in the menu bar.
 
-Current release: `1.5 (4)`.
+Current App Store release: `1.9 (1)`.
+
+> **Project direction:** BackupTrust Standard remains available through the Mac App Store and continues to receive App Store-compatible maintenance releases. Active development and newer direct-access automation features—including scripts and proactive SMB Connect volume preparation—are focused on [BackupTrust Pro](https://github.com/macvfx/BackupTrust-Pro).
 
 ## Highlights
 
@@ -20,6 +22,8 @@ Current release: `1.5 (4)`.
 - Preflight space warnings, notifications, and logs
 - Optional overflow destination for oversized or long-filename files
 - Overflow reclaim UI for verified-safe cleanup of stale overflow copies
+- Destination reconnect waiting when a NAS drops during an active backup
+- Destination locking and automatic queueing when plans share a destination
 
 ## Requirements
 
@@ -46,3 +50,9 @@ New plans automatically start with the full `macOS System` exclusion category en
 - Back up a project folder to a NAS and an external SSD
 - Protect a LucidLink-mounted folder with local and network copies
 - Back up a code archive while excluding `DerivedData`, `.build`, and `node_modules`
+
+## More Documentation
+
+- [User Guide](BackupTrust-UserGuide.md)
+- [Example Workflows](BackupTrust-Workflows.md)
+- [BackupTrust Pro](https://github.com/macvfx/BackupTrust-Pro)

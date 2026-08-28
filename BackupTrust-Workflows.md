@@ -2,13 +2,15 @@
 
 This document shows real-world BackupTrust setups for common macOS backup patterns: local source to local + NAS, LucidLink source to mixed local/network destinations, and local source to both Lucid and SMB storage.
 
+> **Project direction:** These workflows remain current for the sandboxed Mac App Store edition. Active development, direct filesystem access, scripts, and proactive SMB Connect preparation are documented in [BackupTrust Pro](https://github.com/macvfx/BackupTrust-Pro).
+
 These examples are written around the app's current behavior:
 - One plan can copy to multiple destinations.
 - Destinations inside a single plan are copied in parallel.
-- Multiple enabled plans can also run at the same time today.
+- Multiple enabled plans can run at the same time unless destination locking detects a shared destination path or mounted volume.
 - Excluded directories and file filters are applied before copy begins.
 
-If two plans might hit the same destination at once, keep their schedules separated for now. The next planned safety control is an optional Settings rule that prevents multiple plans from writing to the same mounted root volume at the same time.
+Destination locking is enabled by default. A plan that conflicts with an active destination queues automatically and can be cancelled independently.
 
 Folder access note:
 - BackupTrust is sandboxed. When you choose a source, destination, or overflow folder, macOS grants saved access to that folder.
@@ -17,6 +19,7 @@ Folder access note:
 LucidLink note (1.4 build 7+):
 - BackupTrust detects LucidLink volumes automatically — both **Classic** (`lucidfs` kernel mount) and **New** (loopback SMB on `127.0.0.1`). The detected type is logged at the start of each run.
 - If the LucidLink source disconnects mid-backup, the primary copy circuit breaker preserves all files already copied, and the overflow phase is skipped entirely.
+- If a NAS destination drops mid-backup, BackupTrust waits up to three minutes for the expected mounted filesystem to return before giving up.
 
 Post-production tip:
 - For any workflow backing up Final Cut Pro projects or libraries (whether the source is LucidLink, local, or NAS), enable the **Final Cut Pro** exclusion preset. This skips `Render Files`, `Transcoded Media`, `.fcpcache` bundles, and `Motion Renders` — all regeneratable by FCP — and can cut backup size and duration significantly.
@@ -324,13 +327,13 @@ Use **multiple plans** when:
 - one backup should mirror and another should archive
 - one source needs different filter/exclusion behavior than another
 
-### Current caution
+### Concurrent-plan safety
 
 BackupTrust currently allows:
 - multiple destinations within one plan to run in parallel
-- multiple plans to run at the same time
+- multiple plans to run at the same time when they do not share locked destinations
 
-For now, avoid scheduling multiple plans to hammer the same NAS or destination volume at the same moment unless you are intentionally testing that behavior.
+Destination locking automatically queues plans that share an exact destination. With the stricter mounted-volume option enabled, it also queues plans targeting different folders on the same NAS or removable volume.
 
 ---
 
@@ -338,7 +341,6 @@ For now, avoid scheduling multiple plans to hammer the same NAS or destination v
 
 These are not fully shipped yet, but they fit naturally with the workflows above:
 
-- Destination locking so only one plan writes to the same target at a time
 - Sequential plan execution for quieter scheduled runs
 - Per-plan choice of parallel or sequential destinations
 - ~~Large-file overflow routing~~ ✅ Shipped in 1.4 — set an overflow destination per plan to route oversized or long-filename files to a secondary drive
