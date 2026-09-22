@@ -1,5 +1,7 @@
 # BackupTrust Standard
 
+> **This repository is archived and no longer updated.** BackupTrust Standard is distributed only through the [Mac App Store](https://apps.apple.com/ca/app/backuptrust/id6767965282?mt=12), which delivers its updates. The DMGs on this repository's Releases page are old builds; install from the App Store instead. For BackupTrust Pro, see [macvfx/BackupTrust-Pro](https://github.com/macvfx/BackupTrust-Pro). The documentation and privacy policy here stay readable.
+
 BackupTrust Standard is the sandboxed Mac App Store edition of the macOS menu bar app for scheduled, incremental folder backup. Current App Store release: **1.9 (1)**.
 
 ## Project Direction
